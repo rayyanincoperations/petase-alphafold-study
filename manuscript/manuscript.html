@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>AlphaFold versus the crystallographic ensemble of PETase</title>
+<style>
+:root{--bg:#ffffff;--panel:#f3f5f4;--ink:#111;--ink-2:#333;--ink-3:#555;--rule:#d5dbd8;--accent:#0d6b58;--accent-wash:#e1f0eb;--s1:#2a78d6;--s2:#eb6834;--band:#eef1f0;--mono:"Consolas","Courier New",monospace}
+@page{size:A4;margin:22mm 20mm}
+body{font:10.5pt/1.5 "Cambria","Georgia",serif;color:var(--ink);background:#fff;margin:0}
+h1{font:700 17pt/1.25 "Calibri","Segoe UI",sans-serif;margin:0 0 10px}
+h2{font:700 12pt "Calibri","Segoe UI",sans-serif;margin:18px 0 6px}
+h3{font:700 10.5pt "Calibri","Segoe UI",sans-serif;margin:12px 0 4px}
+p{margin:0 0 8px;text-align:justify}
+.authors{font:11pt "Calibri","Segoe UI",sans-serif;margin:0 0 2px}
+.aff{font-size:9pt;color:var(--ink-3);margin:0 0 14px}
+.abstract{border-top:1px solid var(--rule);border-bottom:1px solid var(--rule);padding:8px 0;margin:0 0 12px}
+.kw{font-size:9pt;color:var(--ink-3)}
+figure{margin:12px 0;break-inside:avoid}
+figcaption{font-size:9pt;color:var(--ink-2);margin-top:4px;text-align:justify}
+.chart{position:relative}
+.chart svg{display:block;width:100%;height:auto;overflow:visible}
+.chart text{font:10px var(--mono);fill:var(--ink-3)}
+.chart .lbl{fill:var(--ink-2);font-weight:600}
+table{border-collapse:collapse;width:100%;font:8.5pt "Calibri","Segoe UI",sans-serif;margin:6px 0;break-inside:avoid}
+th,td{border-bottom:1px solid var(--rule);padding:3px 5px;text-align:right}
+th{border-bottom:1.5px solid var(--ink-3)}
+td.l,th.l{text-align:left}
+ol.refs{font-size:9pt;padding-left:1.4em}
+ol.refs li{margin-bottom:3px}
+.tip,#tip{display:none}
+.key{display:inline-flex;align-items:center;gap:5px;margin-right:14px;font-size:9pt}
+.sw{width:14px;height:3px;display:inline-block}
+.dot{width:8px;height:8px;border-radius:50%;display:inline-block}
+.ring{width:8px;height:8px;border-radius:50%;display:inline-block;border:2px solid var(--s1)}
+</style>
+</head>
+<body>
+<h1>AlphaFold's prediction of PETase lies within the variation of its crystallographic ensemble, and its confidence tracks flexibility</h1>
+<p class="authors">Rayyan Niyazi</p>
+<p class="aff">Independent researcher. Correspondence: [email]</p>
+
+<div class="abstract">
+<p><b>Abstract.</b> PETase from <i>Ideonella sakaiensis</i> hydrolyses poly(ethylene terephthalate) and has been crystallised many times, making it a good test case for how closely predicted structures match experimental variation. I compared the AlphaFold Protein Structure Database model of PETase (AF-A0A0K8P6T7-F1) with 26 wild-type chains from 13 crystal structures, selected by sequence identity to UniProt rather than by database annotation. That check excluded three entries annotated as unmutated that are engineered variants. Over 256 core residues, the median Cα RMSD between the model and the crystal chains (0.257 Å, n = 26) equalled the median between chains from different crystals (0.257 Å, n = 304). This held in three sensitivity analyses (within 0.035 Å). Per-residue model confidence (pLDDT) correlated with normalised crystallographic B-factors (Spearman ρ = 0.80, 95% CI 0.74–0.84) and with ensemble RMSF (ρ = 0.80, 0.74–0.84). The model's largest confident deviation, at Ser193 (0.76 Å), is not explained by flexibility or a peptide flip. The side chain of Trp185 (W156 in mature numbering), described as "wobbling", adopts a dominant χ2 ≈ 90° state in the crystals, which the model reproduces, plus minority states it does not. For 11 related PET hydrolases (44–56% sequence identity to PETase; TM-score 0.85–0.91), database models matched their own crystal structures within 0.27–0.42 Å over the structured core. That includes three models dated before their crystal structures were released (0.34–0.42 Å).</p>
+<p class="kw"><b>Keywords:</b> AlphaFold, PETase, PET hydrolase, pLDDT, B-factor, structural ensemble, plastic degradation</p>
+</div>
+
+<h2>1. Introduction</h2>
+<p>PETase was identified in <i>Ideonella sakaiensis</i>, a bacterium that degrades and assimilates PET [1], and its crystal structures were reported soon after [2–4]. The enzyme is an α/β-hydrolase with a Ser–His–Asp catalytic triad (Ser160, Asp206, His237 in UniProt numbering) and a substrate-binding groove lined by a tryptophan described as "wobbling" (Trp185; W156 in mature numbering) [2,5]. Engineered PET hydrolases are now used to depolymerise post-consumer plastic [12,13].</p>
+<p>AlphaFold predicts protein structures with near-experimental accuracy [6], and its database provides predictions for most known sequences [7]. Assessments have found its models useful across many applications when confidence is read critically [8], but also that high-confidence predictions can differ from experimental maps in local backbone and side-chain detail [9]. Whether pLDDT reports flexibility or model uncertainty remains debated [10]. Most comparisons use a single experimental structure as reference, but a protein crystallised many times offers an experimental ensemble against which a prediction's deviations can be judged. This study uses the PETase ensemble to ask three questions: (i) does the model lie within experimental variation; (ii) does pLDDT track experimentally observed flexibility; and (iii) does accuracy hold for related enzymes whose structures post-date the model?</p>
+
+<h2>2. Methods</h2>
+<h3>2.1 Data</h3>
+<p>The PETase sequence was taken from UniProt A0A0K8P6T7 (290 residues) and the model from the AlphaFold Protein Structure Database (AF-A0A0K8P6T7-F1, model version 6, AlphaFold Monomer v2.0). The RCSB search API returned 57 PDB entries mapped to this accession, 16 of which the RCSB annotated as having no mutations. All data were retrieved on 21 November 2026.</p>
+<h3>2.2 Wild-type selection and residue mapping</h3>
+<p>Each chain's sequence was aligned to UniProt by global alignment (Needleman–Wunsch; match +5, mismatch −3, gap −6, free end gaps), and residues were mapped to UniProt positions. Only identical residues were compared. A chain was considered wild-type if it had no substitutions over residues 34–290. This excluded 8CRU (an ancestral sequence reconstruction; 28 differences), 8D1D (a PROSS-stabilised design; 13) and 6KY5 (a variant; 10), despite their annotation, leaving 26 chains from 13 entries. The core was defined as the positions present in every wild-type chain and in the model (256 residues, 34–289).</p>
+<h3>2.3 Structural comparison</h3>
+<p>Pairs were superposed on core Cα atoms by the quaternion method of Horn, and the RMSD was computed. Pairs were classed as model–crystal, crystal–crystal from different entries, or chains within one entry. Three sensitivity analyses were run: one chain per entry; one entry per study (5 entries, 6EQD–6EQH, from one study [4] counted once); and each pair superposed on all residues that pair shares. An average crystal structure was built by iterative superposition of all chains, and per-residue RMSF was computed about it. Cα B-factors were z-scored within each chain over the core and then averaged across chains. Associations were measured with Spearman's ρ, with 95% intervals from 2,000 bootstrap resamples of residues (seed 42). Backbone dihedrals at residues 192–194 and Trp185 side-chain χ1/χ2 were computed for every chain.</p>
+<h3>2.4 Related enzymes and blind test</h3>
+<p>PDB entities annotated with EC 3.1.1.101 were grouped by UniProt accession. For each of the 11 relatives with a wild-type structure, the highest-resolution chain was compared with PETase (6EQE) using the same alignment. The comparison reports sequence identity, Cα RMSD after iterative pruning of pairs beyond 2 Å, and TM-score on the alignment-derived pairing (a lower bound on structure-alignment TM-score). Residues at the positions equivalent to PETase 160, 185, 206 and 237 were recorded. Each relative's database model was compared with its own crystal structure. Relatives first solved after 30 April 2018 (the AlphaFold training cutoff) were treated as post-training. Those whose model file is dated before the crystal structure's release were treated as strictly blind to their own structure.</p>
+<h3>2.5 Software</h3>
+<p>All analysis used about 400 lines of PowerShell and C# written for this study (alignment, superposition, RMSD, RMSF, TM-score, dihedrals and statistics), with no external structural biology packages.</p>
+
+<h2>3. Results</h2>
+<h3>3.1 The model lies within experimental variation</h3>
+<p>Across different crystals, chain pairs differed by a median Cα RMSD of 0.257 Å (range 0.06–0.37; n = 304). Chains within the same crystal were closer (0.181 Å; n = 21). The model differed from the 26 crystal chains by a median of 0.257 Å (0.17–0.35), and 49% of different-crystal pairs agreed more closely than the model's median (Figure 1). Ranked by mean RMSD to chains from other crystals, the model placed 20th of 27. The result was stable across sensitivity analyses (Table 1). The catalytic triad's atoms deviated by a median of 0.26 Å from the crystal chains.</p>
+<figure><div class="chart" id="chartDist"></div>
+<figcaption><b>Figure 1.</b> Distribution of pairwise Cα RMSDs over 256 core residues: chains from different crystals, chains within one crystal, and the AlphaFold model against each crystal chain. Vertical lines mark medians.</figcaption></figure>
+<table id="sensTable"><thead><tr><th class="l">Analysis</th><th>Crystal–crystal median (Å)</th><th>n</th><th>Model–crystal median (Å)</th><th>n</th></tr></thead><tbody></tbody></table>
+<p style="font-size:9pt"><b>Table 1.</b> Sensitivity of the main comparison.</p>
+
+<h3>3.2 pLDDT tracks experimental flexibility</h3>
+<p>Core pLDDT spanned only 95.8–98.9, yet its complement (100 − pLDDT) correlated with normalised B-factors (ρ = 0.80, 95% CI 0.74–0.84) and with ensemble RMSF (ρ = 0.80, 0.74–0.84) (Figure 2). The two experimental measures correlated at ρ = 0.86 (0.82–0.89). The model's deviation from the average crystal structure correlated with RMSF (ρ = 0.49, 0.39–0.58) and with uncertainty (ρ = 0.45, 0.35–0.55). The largest deviation, at Asn73 (0.80 Å), lies in the most flexible loop (Figure 3). The second largest, at Ser193 (0.76 Å), occurs where the crystals agree closely (RMSF 0.18 Å). The model deviates from every chain there (0.36–0.93 Å), while its backbone dihedrals at 192–194 lie within about 15° of the crystal values, so a peptide flip is ruled out. pLDDT at Ser193 is 98.6.</p>
+<figure><div class="chart" id="chartScatter"></div>
+<figcaption><b>Figure 2.</b> Model uncertainty (100 − pLDDT) against mean normalised Cα B-factor for each core residue.</figcaption></figure>
+<figure><div class="chart" id="chartWobble"></div>
+<div><span class="key"><span class="sw" style="background:var(--s2)"></span>Crystal RMSF</span><span class="key"><span class="sw" style="background:var(--s1)"></span>Model deviation from average crystal structure</span></div>
+<figcaption><b>Figure 3.</b> Per-residue crystal RMSF and model deviation along the sequence.</figcaption></figure>
+
+<h3>3.3 The wobbling tryptophan</h3>
+<p>Trp185 χ1 was about −175° in all chains. χ2 clustered near 90° in most chains, but 5XG0 captured three states in its three chains (21°, 79°, 113°), 6EQG chain B was at 44° and 6ANE chain C at −92° (ring flip) (Figure 4). The model adopts χ2 = 92°, the dominant state.</p>
+<figure><div class="chart" id="chartTrp"></div>
+<figcaption><b>Figure 4.</b> Trp185 χ2 in each crystal chain (filled) and in the model (ring).</figcaption></figure>
+
+<h3>3.4 Related enzymes and the blind test</h3>
+<p>The 11 relatives shared 44–56% sequence identity with PETase, yet superposed within 0.68–0.81 Å over 197–220 core residues, with TM-scores of 0.85–0.91 (Table 2). The catalytic serine, aspartate and histidine were at equivalent positions in every relative. The exception was 8BRA, where both the structure and its UniProt sequence have alanine at the serine position. The Trp185 position was tryptophan in 10 of 11 and tyrosine in the most recent (9O9W). The database models matched their own crystal structures within 0.27–0.32 Å (core) for pre-2018 relatives and 0.28–0.42 Å for the six post-training relatives, keeping 97–100% of residues (Figure 5). For the three strictly blind cases (7QJO, 8GZD, 9O9W; models dated June 2022), core RMSDs were 0.35, 0.34 and 0.42 Å. The two largest whole-chain RMSDs (7QJT, 1.48 Å; 9O9W, 1.42 Å) came from 4–8 C-terminal residues with mean pLDDT 59 and 66.</p>
+<table id="famTable"><thead><tr><th class="l">Organism</th><th class="l">PDB</th><th>First structure</th><th>Identity</th><th>Core RMSD to PETase (Å)</th><th>TM-score</th><th>Triad / W185 positions</th><th>Model vs own crystal, core (Å)</th><th>Model date</th></tr></thead><tbody></tbody></table>
+<p style="font-size:9pt"><b>Table 2.</b> PET hydrolase relatives. * = strictly blind (model dated before the crystal structure's release).</p>
+<figure><div class="chart" id="chartBlind"></div>
+<div><span class="key"><span class="ring"></span>All residues</span><span class="key"><span class="dot" style="background:var(--s1)"></span>Core (pairs within 2 Å)</span></div>
+<figcaption><b>Figure 5.</b> Database model against its own crystal structure for PETase and 11 relatives. The dashed line separates relatives first solved after the AlphaFold training cutoff.</figcaption></figure>
+
+<h2>4. Discussion</h2>
+<p>Against a crystallographic ensemble rather than a single reference, the PETase model is indistinguishable in global accuracy from an independent crystal structure. This supports the use of database models as starting points for work on this enzyme family, with the caveat that PETase structures predate the AlphaFold training cutoff. The post-training relatives, and in particular the three predicted before their structures existed, show that this accuracy is not limited to memorised structures, although the family itself was represented in training and as templates.</p>
+<p>The strong association between pLDDT and B-factors over a narrow pLDDT range agrees with large-scale reports that pLDDT correlates with flexibility [10]. Ser193 illustrates the converse noted by crystallographers [9]: a high-confidence local deviation that the confidence score does not flag. A single prediction also cannot represent the minority Trp185 conformations, which are of mechanistic interest [2,5,11].</p>
+<h3>Limitations</h3>
+<p>The blind test covers three strictly blind cases and is not blind at the family level. The ligand-free model was compared with crystal structures, and pLDDT is reported to miss flexibility induced by binding partners [10]. B-factors include lattice disorder and depend on refinement protocol. Residues are not independent, so bootstrap intervals are likely narrow. TM-scores use sequence-derived pairings. The relatives' identities come from an identity-scored alignment rather than a substitution matrix.</p>
+
+<h2>Data and code availability</h2>
+<p>All inputs are public (UniProt, AlphaFold DB, RCSB PDB). The analysis code, a download script and all results tables are available at https://github.com/rayyanincoperations/petase-alphafold-study. An interactive version of this study is available at https://rayyanincoperations.github.io/petase-alphafold-study/.</p>
+
+<h2>Acknowledgements</h2>
+<p>I thank the authors of the structures and databases used here. AI assistance (Claude, Anthropic) was used for writing code and editing text. All analyses were checked and are the author's responsibility.</p>
+
+<h2>References</h2>
+<ol class="refs">
+<li>Yoshida S. et al. A bacterium that degrades and assimilates poly(ethylene terephthalate). <i>Science</i> 351, 1196–1199 (2016). doi:10.1126/science.aad6359</li>
+<li>Han X. et al. Structural insight into catalytic mechanism of PET hydrolase. <i>Nat. Commun.</i> 8, 2106 (2017). doi:10.1038/s41467-017-02255-z</li>
+<li>Joo S. et al. Structural insight into molecular mechanism of poly(ethylene terephthalate) degradation. <i>Nat. Commun.</i> 9, 382 (2018). doi:10.1038/s41467-018-02881-1</li>
+<li>Austin H. P. et al. Characterization and engineering of a plastic-degrading aromatic polyesterase. <i>PNAS</i> 115, E4350–E4357 (2018). doi:10.1073/pnas.1718804115</li>
+<li>Chen C.-C. et al. Structural studies reveal the molecular mechanism of PETase. <i>FEBS J.</i> 285, 3717–3723 (2018). doi:10.1111/febs.14612</li>
+<li>Jumper J. et al. Highly accurate protein structure prediction with AlphaFold. <i>Nature</i> 596, 583–589 (2021). doi:10.1038/s41586-021-03819-2</li>
+<li>Varadi M. et al. AlphaFold Protein Structure Database: massively expanding the structural coverage of protein-sequence space with high-accuracy models. <i>Nucleic Acids Res.</i> 50, D439–D444 (2022). doi:10.1093/nar/gkab1061</li>
+<li>Akdel M. et al. A structural biology community assessment of AlphaFold2 applications. <i>Nat. Struct. Mol. Biol.</i> 29, 1056–1067 (2022). doi:10.1038/s41594-022-00849-w</li>
+<li>Terwilliger T. C. et al. AlphaFold predictions are valuable hypotheses and accelerate but do not replace experimental structure determination. <i>Nat. Methods</i> 21, 110–116 (2024). doi:10.1038/s41592-023-02087-4</li>
+<li>Vander Meersche Y. et al. Flexibility or uncertainty? A critical assessment of AlphaFold 2 pLDDT. <i>Structure</i> 33, 2157–2163 (2025). doi:10.1016/j.str.2025.09.001</li>
+<li>Jäckering A. et al. Influence of wobbling tryptophan and mutations on PET degradation explored by QM/MM free energy calculations. <i>J. Chem. Inf. Model.</i> 64, 7544–7554 (2024). doi:10.1021/acs.jcim.4c00776</li>
+<li>Tournier V. et al. An engineered PET depolymerase to break down and recycle plastic bottles. <i>Nature</i> 580, 216–219 (2020). doi:10.1038/s41586-020-2149-4</li>
+<li>Lu H. et al. Machine learning-aided engineering of hydrolases for PET depolymerization. <i>Nature</i> 604, 662–667 (2022). doi:10.1038/s41586-022-04599-z</li>
+</ol>
+
+<div id="tip" class="tip" hidden></div>
+<script src="charts.js"></script>
+<script>
+Promise.all([fetch("residues.json").then(r=>r.json()),fetch("ensemble.json").then(r=>r.json()),fetch("family.json").then(r=>r.json())]).then(([res,ens,fam])=>{
+  R=res;E=ens;F=Array.isArray(fam)?fam:[fam];
+  drawDist();drawScatter();drawWobble();drawTrp();drawBlind();
+  document.querySelector("#sensTable tbody").innerHTML=E.sensitivity.map(s=>`<tr><td class="l">${s.name}</td><td>${s.lab.median.toFixed(3)}</td><td>${s.lab.n}</td><td>${s.ai.median.toFixed(3)}</td><td>${s.ai.n}</td></tr>`).join("");
+  const fam2=[...F].sort((a,b)=>a.first_structure.localeCompare(b.first_structure));
+  document.querySelector("#famTable tbody").innerHTML=fam2.map(f=>`<tr><td class="l"><i>${f.organism}</i></td><td class="l">${f.pdb}${f.strict_blind?"*":""}</td><td>${f.first_structure.slice(0,4)}</td><td>${f.seq_identity_pct.toFixed(0)}%</td><td>${f.core_rmsd_to_petase.toFixed(2)}</td><td>${f.tm_score.toFixed(2)}</td><td>${f.at_S160} ${f.at_D206} ${f.at_H237} / ${f.at_W185}</td><td>${f.af_core_rmsd.toFixed(2)}</td><td>${f.af_model_date.slice(0,7)}</td></tr>`).join("");
+  document.body.setAttribute("data-ready","1");
+});
+</script>
+</body>
+</html>
