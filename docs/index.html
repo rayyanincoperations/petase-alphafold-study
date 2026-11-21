@@ -1,0 +1,495 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="An independent study by Rayyan Niyazi: how well AlphaFold predicts the plastic-eating enzyme PETase, tested against 26 crystal structures, 11 related enzymes and a blind test.">
+<meta property="og:title" content="How well does AlphaFold know a plastic-eating enzyme?">
+<meta property="og:description" content="AlphaFold's error matched the variation between real crystal structures (0.257 Å), and its confidence tracked real flexibility (ρ = 0.80).">
+<meta property="og:type" content="article">
+<meta property="og:image" content="linkedin-figure.png">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}</style><title>PETase: AI vs the Lab</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: a short research paper. One readable column, wide figures, numbered sections because the order is real. Accent is PET-bottle green. Charts: blue = AlphaFold, orange = lab (validated categorical slots 1 and 2). */
+:root{
+  --bg:#fbfcfb; --panel:#f1f5f3; --ink:#111816; --ink-2:#44504c; --ink-3:#66726e; --rule:#d9e1de;
+  --accent:#0d6b58; --accent-wash:#e1f0eb;
+  --s1:#2a78d6; --s2:#eb6834; --band:#eef1f0;
+  --display:"Space Grotesk","Segoe UI",system-ui,sans-serif;
+  --body:"Inter","Segoe UI",system-ui,sans-serif;
+  --mono:"JetBrains Mono",Consolas,"Courier New",monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#111614;--panel:#18201d;--ink:#e9efec;--ink-2:#c2ccc8;--ink-3:#97a39e;--rule:#2b3632;--accent:#5fcfb2;--accent-wash:#16302a;--s1:#3987e5;--s2:#d95926;--band:#1c2522;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#111614;--panel:#18201d;--ink:#e9efec;--ink-2:#c2ccc8;--ink-3:#97a39e;--rule:#2b3632;--accent:#5fcfb2;--accent-wash:#16302a;--s1:#3987e5;--s2:#d95926;--band:#1c2522;color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--ink);font:16px/1.6 var(--body);margin:0}
+.wrap{max-width:880px;margin:0 auto;padding-block:40px 64px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+a{color:var(--accent)}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.eyebrow{font:600 .78rem var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--accent);margin:0 0 10px}
+h1{font:700 2.5rem/1.1 var(--display);margin:0 0 14px;text-wrap:balance;letter-spacing:-.01em}
+h2{font:700 1.5rem/1.25 var(--display);margin:52px 0 10px;text-wrap:balance}
+h2 .n{color:var(--accent);margin-right:.4em}
+h3{font:700 1.1rem/1.3 var(--display);margin:30px 0 8px;text-wrap:balance}
+p{margin:0 0 14px;max-width:68ch;color:var(--ink-2)}
+.lede{font-size:1.15rem;color:var(--ink)}
+.byline{font-size:.92rem;color:var(--ink-3)}
+.mono,code{font-family:var(--mono);font-size:.92em}
+.abstract{background:var(--panel);border-radius:12px;padding:18px 20px;margin:22px 0}
+.abstract h2{margin:0 0 8px;font-size:1rem;letter-spacing:.06em;text-transform:uppercase;font-family:var(--mono);color:var(--accent)}
+.abstract p{color:var(--ink);margin:0}
+.toc{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:.92rem;margin:0 0 8px;padding:0;list-style:none}
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:22px 0 8px}
+.stat{background:var(--panel);border-radius:10px;padding:14px}
+.stat b{display:block;font:600 1.6rem/1.1 var(--mono);color:var(--ink);font-variant-numeric:tabular-nums}
+.stat span{display:block;font-size:.86rem;color:var(--ink-2);margin-top:6px}
+@media (max-width:760px){.stats{grid-template-columns:repeat(2,minmax(0,1fr))}h1{font-size:2rem}}
+ol.steps{margin:0;padding-left:1.3em;color:var(--ink-2);max-width:68ch}
+ol.steps li{margin-bottom:6px}
+figure{margin:18px 0 6px}
+figcaption{font-size:.9rem;color:var(--ink-3);margin-top:8px;max-width:72ch}
+figcaption b{color:var(--ink-2)}
+.viewer-box{position:relative;height:420px;border-radius:12px;overflow:hidden;background:var(--panel);border:1px solid var(--rule)}
+#viewer{position:absolute;inset:0}
+#viewerMsg{position:absolute;inset:0;display:grid;place-items:center;padding:20px;text-align:center;color:var(--ink-3)}
+.controls{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 0}
+.controls button{font:600 .9rem var(--body);color:var(--ink);background:var(--bg);border:1px solid var(--rule);border-radius:8px;padding:8px 12px;cursor:pointer;min-height:40px}
+.controls button[aria-pressed="true"]{background:var(--accent-wash);border-color:var(--accent)}
+.legend{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:.9rem;color:var(--ink-2);margin:10px 0 0}
+.key{display:inline-flex;align-items:center;gap:8px}
+.sw{width:18px;height:4px;border-radius:2px;display:inline-block}
+.dot{width:10px;height:10px;border-radius:50%;display:inline-block}
+.ring{width:10px;height:10px;border-radius:50%;display:inline-block;border:2px solid var(--s1)}
+.chart{position:relative}
+.chart svg{display:block;width:100%;height:auto;overflow:visible}
+.chart text{font:11px var(--mono);fill:var(--ink-3)}
+.chart .lbl{fill:var(--ink-2);font-weight:600}
+.tip{position:absolute;pointer-events:none;background:var(--bg);border:1px solid var(--rule);border-radius:8px;padding:8px 10px;font:12px/1.45 var(--mono);color:var(--ink);box-shadow:0 4px 14px rgba(0,0,0,.12);white-space:nowrap;z-index:2}
+.tip i{display:inline-block;width:10px;height:3px;border-radius:2px;margin-right:6px;vertical-align:middle}
+.findings{display:flex;flex-direction:column;gap:14px;margin:8px 0 0;padding:0;list-style:none}
+.findings li{border-left:3px solid var(--accent);padding:2px 0 2px 14px;color:var(--ink-2);max-width:72ch}
+.findings b{color:var(--ink)}
+.note{background:var(--accent-wash);border-radius:10px;padding:14px 16px;margin:16px 0}
+.note p{margin:0;color:var(--ink)}
+details{margin:14px 0}
+summary{cursor:pointer;color:var(--accent);font-weight:600}
+.tablebox{overflow:auto;border:1px solid var(--rule);border-radius:8px;margin-top:8px}
+.tablebox.tall{max-height:340px}
+table{border-collapse:collapse;width:100%;font:13px var(--mono);font-variant-numeric:tabular-nums}
+th,td{padding:6px 10px;text-align:right;border-bottom:1px solid var(--rule);white-space:nowrap}
+th{position:sticky;top:0;background:var(--panel);color:var(--ink-2);font-weight:600}
+td.l,th.l{text-align:left}
+td.diff{color:var(--s2);font-weight:600}
+.tag{display:inline-block;font:600 .72rem var(--mono);padding:1px 6px;border-radius:4px;background:var(--accent-wash);color:var(--accent)}
+dl.src{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:6px 16px;margin:0;font-size:.95rem}
+dl.src dt{color:var(--ink-3)}
+dl.src dd{margin:0;color:var(--ink-2);min-width:0}
+ol.refs{padding-left:1.3em;color:var(--ink-2);font-size:.93rem;max-width:72ch}
+ol.refs li{margin-bottom:6px}
+sup.c{font:600 .72em var(--mono);line-height:0}
+sup.c a{text-decoration:none}
+footer{margin-top:48px;padding-top:16px;border-top:1px solid var(--rule);font-size:.88rem;color:var(--ink-3)}
+@media (prefers-reduced-motion:no-preference){.controls button{transition:background-color .15s,border-color .15s}}
+</style>
+
+</head>
+<body>
+<div class="wrap">
+  <p class="eyebrow">Independent mini study · protein structure · November 2026</p>
+  <h1>How well does AlphaFold know a plastic-eating enzyme?</h1>
+  <p class="lede">PETase, from the bacterium <i>Ideonella sakaiensis</i>, breaks down PET, the plastic in drink bottles. I tested AlphaFold's prediction of its 3D shape against every lab-measured PETase structure I could find, checked whether the AI knows which parts it's unsure about, and ran a blind test on newer relatives of the enzyme.</p>
+  <p class="byline">By Rayyan Niyazi. All data is public. The analysis code is my own (PowerShell and C#).</p>
+
+  <section class="abstract" aria-labelledby="abs">
+    <h2 id="abs">Summary</h2>
+    <p>I compared AlphaFold's prediction of PETase with 26 lab-measured copies of the wild-type enzyme from 13 crystal structures. Its median gap to them (0.257 Å) is the same as the median gap between structures from different crystals (0.257 Å), and this held up in four different ways of doing the comparison. Where AlphaFold is less confident, the lab structures really are more flexible (Spearman ρ = 0.80, 95% CI 0.74–0.84). Its clearest confident error is at one residue, Ser193. It predicts the most common position of the enzyme's "wobbling" tryptophan, but not the alternative positions some crystals captured. For three related enzymes whose AlphaFold models are dated before their lab structures existed, it stays accurate (0.34–0.42 Å in the structured core).</p>
+  </section>
+
+  <div class="stats" role="list">
+    <div class="stat" role="listitem"><b>0.257 Å</b><span>Median gap, AlphaFold vs 26 wild-type lab chains</span></div>
+    <div class="stat" role="listitem"><b>0.257 Å</b><span>Median gap between different crystals (304 pairs)</span></div>
+    <div class="stat" role="listitem"><b>ρ 0.80</b><span>AI uncertainty vs lab-measured wobble (CI 0.74–0.84)</span></div>
+    <div class="stat" role="listitem"><b>≤ 0.42 Å</b><span>Core error on 3 relatives predicted before their structures existed</span></div>
+  </div>
+
+  <ul class="toc" aria-label="Sections">
+    <li><a href="#s1">1. Background</a></li><li><a href="#s2">2. Method</a></li><li><a href="#s3">3. One structure</a></li><li><a href="#s4">4. All structures</a></li><li><a href="#s5">5. Confidence vs wobble</a></li><li><a href="#s6">6. Trp185</a></li><li><a href="#s7">7. The family</a></li><li><a href="#s8">8. Blind test</a></li><li><a href="#s9">9. Limits</a></li><li><a href="#s10">10. Part 2</a></li>
+  </ul>
+
+  <h2 id="s1"><span class="n">1</span>Background</h2>
+  <p>A protein is a chain of amino acids that folds into a precise 3D shape, and the shape decides what it does. Measuring a shape in the lab, usually by X-ray crystallography, takes months. AlphaFold, an AI system from Google DeepMind, predicts a shape from the amino-acid sequence alone, in minutes.<sup class="c"><a href="#r6">6</a></sup> Its predictions are freely available in the AlphaFold Protein Structure Database.<sup class="c"><a href="#r7">7</a></sup></p>
+  <p>PETase was discovered in 2016 in a bacterium living on plastic waste<sup class="c"><a href="#r1">1</a></sup>, and its first crystal structures followed in 2017–18.<sup class="c"><a href="#r2">2</a>–<a href="#r4">4</a></sup> Since then, structural biologists have tested how far AlphaFold's predictions can be trusted. Large assessments found the predictions are as useful as experimental structures for many tasks, as long as the confidence scores are read critically.<sup class="c"><a href="#r8">8</a></sup> But even very confident predictions can differ from experiments in local details.<sup class="c"><a href="#r9">9</a></sup> Whether a low confidence score reflects real flexibility or just the model's uncertainty is still debated.<sup class="c"><a href="#r10">10</a></sup> This study tests all three of these questions on one well-characterised enzyme family.</p>
+  <p>Three measures come up throughout this study:</p>
+  <ul class="findings">
+    <li><b>RMSD</b> (root-mean-square deviation): line two structures up as well as possible, then average how far apart matching atoms are. It's measured in ångströms (Å). A carbon–carbon bond is about 1.5 Å, so 0.3 Å is about a fifth of a bond.</li>
+    <li><b>pLDDT:</b> AlphaFold's own confidence score for each amino acid, from 0 to 100. Above 90 is very high, and below 50 means it's essentially guessing.</li>
+    <li><b>B-factor:</b> recorded in every crystal structure. It measures how much each atom smears out, meaning how much that part of the protein wobbles.</li>
+  </ul>
+
+  <h2 id="s2"><span class="n">2</span>Method</h2>
+  <ol class="steps">
+    <li>Got PETase's 290-amino-acid sequence from UniProt (<span class="mono">A0A0K8P6T7</span>) and AlphaFold's prediction from the AlphaFold Protein Structure Database (entry <span class="mono">AF-A0A0K8P6T7-F1</span>, database model version 6, produced by the AlphaFold Monomer v2.0 network). All data was downloaded on 21 November 2026.</li>
+    <li>Searched the Protein Data Bank for every PETase structure (57 entries). The database marks 16 as having no mutations, but checking every sequence letter by letter showed three of them aren't wild-type: an ancestral reconstruction (8CRU, 28 differences), a computationally stabilised design (8D1D, 13) and a mutant (6KY5, 10). I kept only chains identical to UniProt over residues 34–290. That's 13 crystal structures, and 26 chains, since several crystals hold more than one copy.</li>
+    <li>Structures use different numbering schemes and carry extra "tag" residues, so I matched every chain to the UniProt sequence by sequence alignment. Only identical amino acids were compared.</li>
+    <li>Compared the 256 residues present in every chain (34–289). I lined up each pair on its backbone C-alpha atoms using the quaternion superposition method, and calculated RMSD, per-residue wobble across the 26 chains (RMSF), and B-factors normalised within each chain.</li>
+    <li>Repeated the main comparison three other ways to check it doesn't depend on one choice: one chain per crystal, one crystal per research study, and each pair lined up on all the residues it shares.</li>
+    <li>For the family and the blind test, I searched the Protein Data Bank for other PET-degrading enzymes (enzyme class 3.1.1.101). I compared each one with PETase and with its own AlphaFold prediction.</li>
+    <li>Reported correlations are Spearman rank correlations across residues, with 95% confidence intervals from 2,000 bootstrap resamples.</li>
+  </ol>
+
+  <h2 id="s3"><span class="n">3</span>One structure, up close</h2>
+  <p>As a first look: AlphaFold's prediction laid over the 5XJH crystal structure.</p>
+  <figure>
+    <div class="viewer-box"><div id="viewer" aria-label="3D view of the AlphaFold prediction overlaid on the lab structure"></div><div id="viewerMsg">Loading the 3D view…</div></div>
+    <div class="controls" role="group" aria-label="3D view options">
+      <button type="button" id="btnOverlay" aria-pressed="true">AI vs lab</button>
+      <button type="button" id="btnConf" aria-pressed="false">Colour AI by confidence</button>
+      <button type="button" id="btnSite" aria-pressed="false">Show the active site</button>
+    </div>
+    <div class="legend" id="viewerLegend"></div>
+    <figcaption><b>Figure 1.</b> Drag to rotate, scroll or pinch to zoom. The two shapes overlap almost everywhere. The loose strand is the signal peptide (residues 1–29), a "shipping label" the cell cuts off. Only the prediction includes it.</figcaption>
+  </figure>
+  <figure class="chart" id="chartConf"></figure>
+  <figcaption><b>Figure 2.</b> AlphaFold's confidence for each amino acid. It averages 55 over the signal peptide (shaded) and 98.6 over the working enzyme. That's consistent with the signal peptide having no fixed shape, though it may also reflect that no experimental structure includes it.</figcaption>
+
+  <h2 id="s4"><span class="n">4</span>Against every lab structure</h2>
+  <p>A single comparison could be luck. Lab structures also differ from each other a little, because of crystal packing, temperature and resolution. So the real question is whether AlphaFold falls inside the normal spread between experiments.</p>
+  <figure class="chart" id="chartDist"></figure>
+  <div class="legend"><span class="key"><span class="dot" style="background:var(--s2)"></span>Lab vs lab, different crystals (304 pairs)</span><span class="key"><span class="dot" style="background:var(--s2);opacity:.45"></span>Copies within one crystal (21 pairs)</span><span class="key"><span class="dot" style="background:var(--s1)"></span>AlphaFold vs lab (26 pairs)</span></div>
+  <figcaption><b>Figure 3.</b> Every pairwise RMSD. Copies in the same crystal agree more closely, so they're shown separately. The fair comparison for AlphaFold is structures from different crystals. The vertical marks are medians.</figcaption>
+  <ul class="findings" style="margin-top:16px">
+    <li><b>AlphaFold falls right in the experimental range.</b> Its median gap equals the median between different crystals, and <span id="pctBelow">49%</span> of crystal pairs agree more closely than AlphaFold's median does. Ranked by average distance to the lab chains, it comes <span id="rank">20th of 27</span>, a little below the middle.</li>
+    <li><b>The result doesn't depend on how the comparison is done.</b> Across the four versions of the analysis, AlphaFold's median stays within 0.03 Å of the lab-vs-lab median (Table 1).</li>
+    <li><b>The active site matches every crystal.</b> The atoms of the three amino acids that cut the plastic (Ser160, Asp206, His237) are a median of <span id="site">0.26 Å</span> from each lab structure.</li>
+  </ul>
+  <div class="tablebox" style="margin-top:14px"><table id="sensTable"><thead><tr><th class="l">Version of the comparison</th><th>Lab vs lab median (Å)</th><th>Pairs</th><th>AlphaFold vs lab median (Å)</th><th>Pairs</th></tr></thead><tbody></tbody></table></div>
+  <figcaption><b>Table 1.</b> Sensitivity checks. "One crystal per study" counts the five closely related 6EQD–6EQH structures, from one research group, only once.</figcaption>
+
+  <h2 id="s5"><span class="n">5</span>Does AlphaFold know where it's unsure?</h2>
+  <p>Every residue in the core scored between 95.8 and 98.9, so AlphaFold is very confident everywhere. But do its small dips line up with the parts that really move? I compared them with two independent measures of movement: how much each residue varies across the 26 lab chains (RMSF), and the crystal B-factors.</p>
+  <figure class="chart" id="chartScatter"></figure>
+  <figcaption><b>Figure 4.</b> Each dot is one amino acid. Further right means it wobbles more in the crystals, and higher means AlphaFold is less sure. Spearman rank correlation <b id="rho">ρ = 0.80</b>.</figcaption>
+  <figure class="chart" id="chartWobble"></figure>
+  <div class="legend"><span class="key"><span class="sw" style="background:var(--s2)"></span>Lab wobble across 26 chains (RMSF)</span><span class="key"><span class="sw" style="background:var(--s1)"></span>AlphaFold's distance from the average lab structure</span></div>
+  <figcaption><b>Figure 5.</b> Along the chain, AlphaFold's errors mostly peak where the lab structures also disagree with each other, such as the loop around Asn73 and the surface loop at 276–278. The exception is Ser193.</figcaption>
+  <ul class="findings" style="margin-top:16px">
+    <li><b>Yes, strongly.</b> AlphaFold's uncertainty correlates with crystal B-factors (ρ = 0.80, 95% CI 0.74–0.84) and with wobble between structures (ρ = 0.80, 0.74–0.84). The two lab measures correlate with each other at ρ = 0.86 (0.82–0.89), so AlphaFold's confidence tracks real flexibility nearly as well as one experimental measure tracks another.</li>
+    <li><b>This matches a large 2025 study</b> that found pLDDT "reasonably correlates" with flexibility measured by simulations, NMR and B-factors.<sup class="c"><a href="#r10">10</a></sup> The same study warns that pLDDT misses flexibility caused by binding partners. PETase works by binding a plastic chain, and the prediction here is of the enzyme on its own.</li>
+    <li><b>Its errors are mostly in the moving parts.</b> Where AlphaFold differs from the average lab structure correlates with lab wobble (ρ = 0.49, 0.39–0.58). Its largest error, at Asn73 (0.80 Å), is in the most flexible loop of the enzyme.</li>
+    <li><b>One confident mistake of its own: Ser193.</b> Here AlphaFold is 0.76 Å from the average lab structure, its second-largest error, even though the 26 crystals agree closely (wobble 0.18 Å). It's off from every single crystal (by 0.36–0.93 Å), so this isn't one odd structure. It isn't a flipped backbone either: AlphaFold's backbone angles there are within about 15° of the crystals'. The chain is simply shifted slightly. AlphaFold is still very confident at this residue (98.6), so this is the clearest place where its confidence score doesn't warn of the error. This is the kind of local, high-confidence difference that crystallographers have reported for AlphaFold in general, and it's why they call predictions "valuable hypotheses" rather than replacements for experiments.<sup class="c"><a href="#r9">9</a></sup></li>
+  </ul>
+
+  <h2 id="s6"><span class="n">6</span>The wobbling tryptophan</h2>
+  <p>Trp185 lines the groove where PET binds. Papers that number the enzyme without its signal peptide call it <b>W156</b>. Crystallographers described it as "wobbling" between positions and linked this to how the enzyme grips its substrate and releases its product.<sup class="c"><a href="#r2">2</a>,<a href="#r5">5</a></sup> Simulations of related enzymes suggest the wobbling tryptophan also changes how it stacks against the plastic's ring during the reaction.<sup class="c"><a href="#r11">11</a></sup> I measured the angle of its ring (the side-chain angle χ2) in every chain.</p>
+  <figure class="chart" id="chartTrp"></figure>
+  <div class="legend"><span class="key"><span class="dot" style="background:var(--s2)"></span>Lab chains</span><span class="key"><span class="ring"></span>AlphaFold</span></div>
+  <figcaption><b>Figure 6.</b> Trp185 ring angle in each chain. Most sit near 90°. Structure 5XG0 captured three different angles in its three copies (21°, 79° and 113°), 6EQG chain B sits at 44°, and 6ANE chain C has the ring flipped (−92°).</figcaption>
+  <ul class="findings" style="margin-top:16px">
+    <li><b>AlphaFold predicts the most common position (92°).</b> But a prediction is one snapshot. It can't show that this ring moves between positions. The movement only shows up when many experiments are compared.</li>
+  </ul>
+
+  <h2 id="s7"><span class="n">7</span>PETase's family</h2>
+  <p>I found 11 other PET-degrading enzymes with lab structures, mostly from soil and compost bacteria. How similar are they to PETase?</p>
+  <div class="tablebox"><table id="famTable"><thead><tr><th class="l">Enzyme source</th><th class="l">Structure</th><th>First solved</th><th>Same amino acids as PETase</th><th>3D gap to PETase</th><th>TM-score</th><th>At Ser160</th><th>At Trp185</th><th>At Asp206</th><th>At His237</th></tr></thead><tbody></tbody></table></div>
+  <figcaption><b>Table 2.</b> The sequences are only 44–56% identical, but the 3D cores line up within about 0.7–0.8 Å over 200+ residues. The TM-scores are 0.85–0.91, where anything above 0.5 means the same fold. The plastic-cutting trio (Ser–Asp–His) is in the same place in every enzyme. The one exception at the serine position is 8BRA, where both the structure and its UniProt record have alanine. That's probably an inactive form used to capture the bound product, but I haven't confirmed it. The Trp185 position is tryptophan in 10 of 11, and the newest enzyme has a tyrosine there. Identity comes from a simple identity-scored alignment. The TM-score uses the same residue pairing, so it's a lower bound on what dedicated structure-alignment software would report.</figcaption>
+  <ul class="findings" style="margin-top:16px">
+    <li><b>Shape is conserved more than sequence.</b> Evolution has changed about half of the amino acids while keeping the fold and the active site. This is a classic pattern in biology, and it's a big part of why AI can learn protein shapes at all.</li>
+    <li><b>The tryptophan is kept almost everywhere.</b> Ten of eleven relatives have a tryptophan at the position of Trp185. That fits its suggested role in holding the plastic.<sup class="c"><a href="#r5">5</a>,<a href="#r11">11</a></sup></li>
+  </ul>
+
+  <h2 id="s8"><span class="n">8</span>A blind test</h2>
+  <p>AlphaFold was trained on structures released before 30 April 2018, and PETase's own structures came out in 2017–18. So it may have effectively seen the answer. Six of the relatives were first solved in 2022–2025, after training. There's a second catch, though. When the database builds a model, it can also use existing structures as templates. So I checked the date on each model file. Three models (for 7QJO, 8GZD and 9O9W) are dated June 2022, before their own lab structures were released, so they couldn't have used them. I call these <b>strictly blind</b>. The other three models are dated 2025, after their structures were public.</p>
+  <figure class="chart" id="chartBlind"></figure>
+  <div class="legend"><span class="key"><span class="ring"></span>All residues</span><span class="key"><span class="dot" style="background:var(--s1)"></span>Structured core (residues within 2 Å)</span></div>
+  <figcaption><b>Figure 7.</b> AlphaFold's prediction vs each enzyme's own lab structure. Rows below the line were solved after AlphaFold's training cutoff, and rows marked "strictly blind" have models dated before their structures existed. The core keeps 97–100% of residues in every case.</figcaption>
+  <ul class="findings" style="margin-top:16px">
+    <li><b>Still accurate on enzymes it couldn't have seen.</b> For the three strictly blind enzymes, the core RMSD is 0.34–0.42 Å. For all six newer enzymes it's 0.28–0.42 Å, against 0.27–0.32 Å for the older ones. That's slightly worse, but still close to the 0.257 Å typical gap between two crystals of the same protein.</li>
+    <li><b>Only three strictly blind cases.</b> That's enough to show AlphaFold isn't simply copying a known answer, but too few to say how accurate it is in general.</li>
+    <li><b>The two big misses were flagged in advance.</b> For 7QJT and 9O9W the overall RMSD is about 1.4–1.5 Å. That's entirely from the last 4–8 residues of the chain, which AlphaFold had marked with low confidence (averages of 59 and 66). Read with its confidence scores, the prediction never misled.</li>
+  </ul>
+
+  <h2 id="s9"><span class="n">9</span>Limitations</h2>
+  <ul class="findings">
+    <li><b>The blind test is blind to the protein, not to the family.</b> AlphaFold learned from the older relatives in this table and can use them as templates, so "unseen" here means a new member of a known family. A protein from an unknown family would be a harder test.</li>
+    <li><b>Crystals aren't the whole truth.</b> Every lab structure here is a crystal, so it's frozen, packed and often cooled. In solution the enzyme moves more than any of these show.</li>
+    <li><b>Only C-alpha atoms are used for the main RMSDs.</b> That measures the backbone fold. Side chains, which matter for binding plastic, can differ more (see Trp185).</li>
+    <li><b>A handful of residues are missing.</b> The shared core covers 256 of the 257 residues seen in the crystals. Lining up each pair on all its shared residues raises the lab median by 0.01 Å and AlphaFold's by 0.035 Å, which is still within the experimental range (Table 1).</li>
+    <li><b>B-factors aren't pure flexibility.</b> They also capture disorder in the crystal itself, so they're an imperfect stand-in for how the enzyme moves.<sup class="c"><a href="#r10">10</a></sup> I used them alongside the variation between structures, which gave a similar answer.</li>
+    <li><b>Neighbouring residues aren't independent.</b> Amino acids next to each other in a loop tend to move together, so the confidence intervals on the correlations are probably a little too narrow.</li>
+    <li><b>The structures aren't independent either.</b> Five of the 13 crystals come from one study under similar conditions. Counting them once changes the medians by less than 0.03 Å (Table 1).</li>
+    <li><b>B-factor refinement differs between labs.</b> Some groups use methods (such as TLS) that change how B-factors spread across a chain. Normalising within each chain reduces this, but doesn't remove it.</li>
+    <li><b>No plastic bound.</b> The prediction and most of the crystals show the enzyme on its own. How well AlphaFold handles PETase gripping a PET chain isn't tested here.</li>
+  </ul>
+
+  <h2 id="s10"><span class="n">10</span>Part 2: a second AI, and an engineered enzyme</h2>
+  <p>Two follow-up questions, answered with the same 26 wild-type crystal chains and 256 core residues.</p>
+  <h3>Is AlphaFold unusual, or would any predictor do this well?</h3>
+  <p>I ran ESMFold, a different structure predictor that works from a protein language model rather than from aligned families of sequences, on the mature PETase sequence using the public ESM Metagenomic Atlas service.</p>
+  <div class="tablebox"><table><thead><tr><th class="l">Compared with the 26 wild-type crystal chains</th><th>Median RMSD (Å)</th><th>Confidence vs B-factors (ρ)</th></tr></thead><tbody>
+    <tr><td class="l">Crystals from different crystals (reference)</td><td>0.257</td><td>–</td></tr>
+    <tr><td class="l">AlphaFold</td><td>0.257</td><td>0.80 (0.74–0.84)</td></tr>
+    <tr><td class="l">ESMFold</td><td>0.513 (0.47–0.59)</td><td>0.56 (0.46–0.64)</td></tr>
+  </tbody></table></div>
+  <figcaption><b>Table 3.</b> A second predictor. Each ESMFold comparison falls outside the range seen between crystals (up to 0.37 Å).</figcaption>
+  <ul class="findings" style="margin-top:16px">
+    <li><b>ESMFold is good, but about half as precise.</b> Its error is roughly double AlphaFold's and sits outside the experimental range. Its confidence scores also track flexibility less well. So AlphaFold's match with the crystals isn't something any modern predictor achieves automatically.</li>
+    <li><b>Both predictors are off at Ser193</b> (ESMFold by 0.64 Å). When two different methods make the same "mistake", it's worth asking whether the crystals share something unusual there, such as the way molecules pack against each other in the crystal. That's an open question I can't answer with this data.</li>
+  </ul>
+  <h3>Can a predictor see what FAST-PETase's mutations do?</h3>
+  <p>FAST-PETase is a version of PETase with five mutations (S121E, D186H, R224Q, N233K and R280A), found with machine learning, that breaks down PET much faster.<sup class="c"><a href="#r13">13</a></sup> Its crystal structure is 7SH6. I compared the real structural change (7SH6 against the wild-type crystals) with the change ESMFold predicts (ESMFold's FAST-PETase against its wild-type).</p>
+  <ul class="findings">
+    <li><b>The mutations barely move the backbone.</b> FAST-PETase's crystal is a median of 0.255 Å from the wild-type crystals, the same as wild-type crystals are from each other (0.257 Å). At the five mutated positions, the backbone moved by 0.08–0.34 Å, at most 1.7 times the normal wobble there. No residue anywhere moved more than three times its normal wobble.</li>
+    <li><b>The predictor agrees there's almost nothing to see.</b> ESMFold predicts an overall change of just 0.09 Å, and its residue-by-residue changes barely match the real ones (ρ = 0.25, 0.13–0.36).</li>
+    <li><b>So the speed-up isn't in the backbone's shape.</b> Whatever makes FAST-PETase faster has to come from things these comparisons don't measure, such as side chains, surface charge, stability at higher temperatures or how the enzyme meets the plastic. Backbone structure prediction, however accurate, isn't the right tool for spotting it.</li>
+  </ul>
+
+  <h2>What I learned</h2>
+  <p>For a well-studied enzyme family, AlphaFold's predicted shape is as good as a second experiment, and its confidence score is a reliable guide to which parts to trust. What it doesn't give you is movement: the wobbling Trp185 only showed up by comparing many experiments. Part 2 showed that not every predictor reaches this level, and that a famous engineered variant doesn't differ from the original in backbone shape at all. Next, I'd test a protein from a family with no known structures, and look at side chains and stability, where enzymes like FAST-PETase and the improved LCC used for bottle recycling<sup class="c"><a href="#r12">12</a></sup> probably gain their advantage.</p>
+
+  <h2>Data</h2>
+  <details>
+    <summary>Every residue: confidence, wobble and AI error</summary>
+    <div class="tablebox tall"><table id="tbl"><thead><tr><th>Residue</th><th class="l">Amino acid</th><th>Confidence</th><th>Lab wobble (Å)</th><th>B-factor (z)</th><th>AI error (Å)</th></tr></thead><tbody></tbody></table></div>
+  </details>
+  <details>
+    <summary>The 26 lab chains used, and the 3 entries left out</summary>
+    <div class="tablebox tall"><table id="chainTbl"><thead><tr><th class="l">Chain</th><th>Resolution (Å)</th><th>Released</th><th>Avg gap to other crystals (Å)</th></tr></thead><tbody></tbody></table></div>
+    <p class="byline" id="excludedNote" style="margin-top:8px"></p>
+  </details>
+  <dl class="src">
+    <dt>Sequence</dt><dd><a href="https://www.uniprot.org/uniprotkb/A0A0K8P6T7/entry" target="_blank" rel="noopener">UniProt A0A0K8P6T7</a></dd>
+    <dt>Prediction</dt><dd><a href="https://alphafold.ebi.ac.uk/entry/A0A0K8P6T7" target="_blank" rel="noopener">AlphaFold DB AF-A0A0K8P6T7-F1</a>, model v6</dd>
+    <dt>Lab structures</dt><dd>13 wild-type PETase entries (26 chains) and 11 relatives from the <a href="https://www.rcsb.org" target="_blank" rel="noopener">RCSB Protein Data Bank</a>, all listed in the tables above</dd>
+    <dt>Code</dt><dd>Sequence alignment (Needleman–Wunsch), quaternion superposition (Horn's method), RMSF, TM-score, Spearman correlation with bootstrap intervals. About 400 lines of PowerShell and C#, written for this project. It reruns from scratch with one download script, and is available on request.</dd>
+    <dt>Part 2</dt><dd>ESMFold predictions of the mature wild-type and FAST-PETase sequences (residues 30–290) from the public ESM Metagenomic Atlas API, and the FAST-PETase crystal structure <a href="https://www.rcsb.org/structure/7SH6" target="_blank" rel="noopener">PDB 7SH6</a> (1.44 Å).</dd>
+    <dt>Revisions</dt><dd>Version 5 corrects the structure set after a self-review: three entries the database marks as unmutated turned out to be engineered proteins and were removed. Every figure and number was recalculated.</dd>
+  </dl>
+  <h3>References</h3>
+  <p class="byline">All references checked against PubMed, November 2026.</p>
+  <ol class="refs">
+    <li id="r1">Yoshida S. et al. (2016). A bacterium that degrades and assimilates poly(ethylene terephthalate). <i>Science</i> 351, 1196–1199. <a href="https://doi.org/10.1126/science.aad6359" target="_blank" rel="noopener">doi:10.1126/science.aad6359</a></li>
+    <li id="r2">Han X. et al. (2017). Structural insight into catalytic mechanism of PET hydrolase. <i>Nature Communications</i> 8, 2106. <a href="https://doi.org/10.1038/s41467-017-02255-z" target="_blank" rel="noopener">doi:10.1038/s41467-017-02255-z</a></li>
+    <li id="r3">Joo S. et al. (2018). Structural insight into molecular mechanism of poly(ethylene terephthalate) degradation. <i>Nature Communications</i> 9, 382. <a href="https://doi.org/10.1038/s41467-018-02881-1" target="_blank" rel="noopener">doi:10.1038/s41467-018-02881-1</a></li>
+    <li id="r4">Austin H. P. et al. (2018). Characterization and engineering of a plastic-degrading aromatic polyesterase. <i>PNAS</i> 115, E4350–E4357. <a href="https://doi.org/10.1073/pnas.1718804115" target="_blank" rel="noopener">doi:10.1073/pnas.1718804115</a></li>
+    <li id="r5">Chen C.-C. et al. (2018). Structural studies reveal the molecular mechanism of PETase. <i>FEBS Journal</i> 285, 3717–3723. <a href="https://doi.org/10.1111/febs.14612" target="_blank" rel="noopener">doi:10.1111/febs.14612</a></li>
+    <li id="r6">Jumper J. et al. (2021). Highly accurate protein structure prediction with AlphaFold. <i>Nature</i> 596, 583–589. <a href="https://doi.org/10.1038/s41586-021-03819-2" target="_blank" rel="noopener">doi:10.1038/s41586-021-03819-2</a></li>
+    <li id="r7">Varadi M. et al. (2022). AlphaFold Protein Structure Database: massively expanding the structural coverage of protein-sequence space with high-accuracy models. <i>Nucleic Acids Research</i> 50, D439–D444. <a href="https://doi.org/10.1093/nar/gkab1061" target="_blank" rel="noopener">doi:10.1093/nar/gkab1061</a></li>
+    <li id="r8">Akdel M. et al. (2022). A structural biology community assessment of AlphaFold2 applications. <i>Nature Structural &amp; Molecular Biology</i> 29, 1056–1067. <a href="https://doi.org/10.1038/s41594-022-00849-w" target="_blank" rel="noopener">doi:10.1038/s41594-022-00849-w</a></li>
+    <li id="r9">Terwilliger T. C. et al. (2024). AlphaFold predictions are valuable hypotheses and accelerate but do not replace experimental structure determination. <i>Nature Methods</i> 21, 110–116. <a href="https://doi.org/10.1038/s41592-023-02087-4" target="_blank" rel="noopener">doi:10.1038/s41592-023-02087-4</a></li>
+    <li id="r10">Vander Meersche Y. et al. (2025). Flexibility or uncertainty? A critical assessment of AlphaFold 2 pLDDT. <i>Structure</i> 33, 2157–2163. <a href="https://doi.org/10.1016/j.str.2025.09.001" target="_blank" rel="noopener">doi:10.1016/j.str.2025.09.001</a></li>
+    <li id="r11">Jäckering A. et al. (2024). Influence of wobbling tryptophan and mutations on PET degradation explored by QM/MM free energy calculations. <i>Journal of Chemical Information and Modeling</i> 64, 7544–7554. <a href="https://doi.org/10.1021/acs.jcim.4c00776" target="_blank" rel="noopener">doi:10.1021/acs.jcim.4c00776</a></li>
+    <li id="r12">Tournier V. et al. (2020). An engineered PET depolymerase to break down and recycle plastic bottles. <i>Nature</i> 580, 216–219. <a href="https://doi.org/10.1038/s41586-020-2149-4" target="_blank" rel="noopener">doi:10.1038/s41586-020-2149-4</a></li>
+    <li id="r13">Lu H. et al. (2022). Machine learning-aided engineering of hydrolases for PET depolymerization. <i>Nature</i> 604, 662–667. <a href="https://doi.org/10.1038/s41586-022-04599-z" target="_blank" rel="noopener">doi:10.1038/s41586-022-04599-z</a></li>
+  </ol>
+
+  <footer>Made by Rayyan Niyazi, November 2026. 3D view drawn with 3Dmol.js. Code and data: <a href="https://github.com/rayyanincoperations/petase-alphafold-study">github.com/rayyanincoperations/petase-alphafold-study</a>.</footer>
+</div>
+
+<div class="tip" id="tip" hidden></div>
+
+<script src="https://cdn.jsdelivr.net/npm/3dmol@2.4.0/build/3Dmol-min.js"></script>
+<script>
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const NS="http://www.w3.org/2000/svg";
+const el=(t,a={},p)=>{const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);p&&p.appendChild(e);return e};
+const tip=document.getElementById("tip");
+let R=[],E=null,F=[];
+const f2=v=>v==null?"–":(+v).toFixed(2);
+
+function showTip(ev,html){
+  const t=ev.touches?ev.touches[0]:ev;tip.innerHTML=html;tip.hidden=false;
+  let left=t.clientX+14+scrollX;if(t.clientX+tip.offsetWidth+30>innerWidth)left=t.clientX-tip.offsetWidth-14+scrollX;
+  tip.style.left=left+"px";tip.style.top=(t.clientY+scrollY+14)+"px";
+}
+function hideTip(){tip.hidden=true}
+function svgFor(box,W,H,label){box.innerHTML="";return el("svg",{viewBox:`0 0 ${W} ${H}`,role:"img","aria-label":label},box)}
+function grid(svg,ticks,y,L,W,Rr,fmt){ticks.forEach(v=>{el("line",{x1:L,x2:W-Rr,y1:y(v),y2:y(v),stroke:css("--rule"),"stroke-width":1},svg);el("text",{x:L-8,y:y(v)+4,"text-anchor":"end"},svg).textContent=fmt?fmt(v):v})}
+/* Dot with a bigger invisible hit target */
+function dot(svg,cx,cy,r,fill,stroke,html,ring){
+  const c=el("circle",{cx,cy,r,fill:ring?css("--bg"):fill,stroke:ring?fill:stroke,"stroke-width":2},svg);
+  const h=el("circle",{cx,cy,r:Math.max(r+5,9),fill:"transparent"},svg);
+  h.addEventListener("pointermove",e=>showTip(e,html));h.addEventListener("pointerdown",e=>showTip(e,html));h.addEventListener("pointerleave",hideTip);
+  return c;
+}
+/* Crosshair hover for per-residue line charts */
+function crosshair(box,svg,x,inv,top,bottom,fmt,dots){
+  const line=el("line",{y1:top,y2:bottom,stroke:css("--ink-3"),"stroke-width":1,"stroke-dasharray":"3 3",visibility:"hidden"},svg);
+  const marks=dots.map(d=>el("circle",{r:4,fill:d.color,stroke:css("--bg"),"stroke-width":2,visibility:"hidden"},svg));
+  const hit=el("rect",{x:0,y:top,width:svg.viewBox.baseVal.width,height:bottom-top,fill:"transparent"},svg);
+  const move=ev=>{
+    const pt=svg.createSVGPoint();const t=ev.touches?ev.touches[0]:ev;pt.x=t.clientX;pt.y=t.clientY;
+    const p=pt.matrixTransform(svg.getScreenCTM().inverse());const r=inv(p.x);if(!r)return;
+    line.setAttribute("x1",x(r.n));line.setAttribute("x2",x(r.n));line.setAttribute("visibility","visible");
+    dots.forEach((d,i)=>{const v=d.get(r);if(v==null){marks[i].setAttribute("visibility","hidden");return}marks[i].setAttribute("cx",x(r.n));marks[i].setAttribute("cy",d.y(v));marks[i].setAttribute("visibility","visible")});
+    showTip(ev,fmt(r));
+  };
+  hit.addEventListener("pointermove",move);hit.addEventListener("pointerdown",move);
+  hit.addEventListener("pointerleave",()=>{hideTip();line.setAttribute("visibility","hidden");marks.forEach(m=>m.setAttribute("visibility","hidden"))});
+}
+function axisRes(svg,x,y0,W,lo,hi){[lo,50,100,150,200,250,hi].forEach(n=>{el("text",{x:x(n),y:y0+16,"text-anchor":"middle"},svg).textContent=n});el("text",{x:W/2,y:y0+32,"text-anchor":"middle"},svg).textContent="residue number"}
+
+/* Fig 2: confidence along the chain */
+function drawConf(){
+  const box=document.getElementById("chartConf"),W=800,H=230,L=40,Rr=12,T=12,B=H-42;
+  const svg=svgFor(box,W,H,"AlphaFold confidence per residue: low for residues 1 to 29, near 100 for the rest");
+  const x=n=>L+(n-1)/289*(W-L-Rr),y=v=>B-(v/100)*(B-T);
+  el("rect",{x:x(1),y:T,width:x(29.5)-x(1),height:B-T,fill:css("--band")},svg);
+  el("text",{x:x(15),y:T+14,"text-anchor":"middle",class:"lbl"},svg).textContent="signal peptide";
+  grid(svg,[0,50,70,90,100],y,L,W,Rr);
+  el("text",{x:W-Rr,y:y(90)-6,"text-anchor":"end"},svg).textContent="very high (90+)";
+  el("path",{d:R.map((r,i)=>(i?"L":"M")+x(r[0]).toFixed(1)+" "+y(r[2]).toFixed(1)).join(""),fill:"none",stroke:css("--s1"),"stroke-width":2,"stroke-linejoin":"round"},svg);
+  axisRes(svg,x,B,W,1,290);
+  const inv=px=>{const n=Math.max(1,Math.min(290,Math.round(1+(px-L)/(W-L-Rr)*289)));const r=R[n-1];return {n,r}};
+  crosshair(box,svg,x,inv,T,B,o=>`Residue ${o.n} · ${o.r[1]}<br>Confidence ${o.r[2].toFixed(1)}`,[{color:css("--s1"),get:o=>o.r[2],y}]);
+}
+
+/* Fig 3: distribution of pairwise RMSDs */
+function drawDist(){
+  const box=document.getElementById("chartDist"),W=800,H=210,L=150,Rr=16,T=10,B=H-40,max=0.5;
+  const svg=svgFor(box,W,H,"Strip plot: AlphaFold vs lab RMSDs fall within the range of lab vs lab RMSDs");
+  const x=v=>L+(v/max)*(W-L-Rr);
+  [0,0.1,0.2,0.3,0.4,0.5].forEach(v=>{el("line",{x1:x(v),x2:x(v),y1:T,y2:B,stroke:css("--rule"),"stroke-width":1},svg);el("text",{x:x(v),y:B+16,"text-anchor":"middle"},svg).textContent=v.toFixed(1)});
+  el("text",{x:(L+W-Rr)/2,y:B+32,"text-anchor":"middle"},svg).textContent="RMSD between two structures (Å)";
+  const rows=[{label:"Different crystals",vals:E.lab_lab_values,col:css("--s2"),op:.55,y:T+30,med:E.lab_lab.median},{label:"Same crystal",vals:E.same_crystal_values,col:css("--s2"),op:.3,y:T+80,med:E.same_crystal.median},{label:"AlphaFold vs lab",vals:E.ai_lab_values,col:css("--s1"),op:.7,y:T+130,med:E.ai_lab.median}];
+  rows.forEach(rw=>{
+    el("text",{x:L-14,y:rw.y+4,"text-anchor":"end",class:"lbl"},svg).textContent=rw.label;
+    let seed=7;const rnd=()=>{seed=(seed*16807)%2147483647;return seed/2147483647};
+    rw.vals.forEach(v=>el("circle",{cx:x(v),cy:rw.y+(rnd()-.5)*28,r:3,fill:rw.col,"fill-opacity":rw.op},svg));
+    el("line",{x1:x(rw.med),x2:x(rw.med),y1:rw.y-18,y2:rw.y+18,stroke:css("--ink"),"stroke-width":2},svg);
+    el("text",{x:x(rw.med)+6,y:rw.y-12},svg).textContent="median "+rw.med.toFixed(3);
+    const hit=el("rect",{x:L,y:rw.y-20,width:W-L-Rr,height:40,fill:"transparent"},svg);
+    const h=e=>showTip(e,`${rw.label}<br>${rw.vals.length} pairs<br>median ${rw.med.toFixed(3)} Å<br>range ${Math.min(...rw.vals).toFixed(3)}–${Math.max(...rw.vals).toFixed(3)} Å`);
+    hit.addEventListener("pointermove",h);hit.addEventListener("pointerdown",h);hit.addEventListener("pointerleave",hideTip);
+  });
+}
+
+/* Fig 4: scatter, lab wobble (B-factor z) vs AI uncertainty */
+function drawScatter(){
+  const box=document.getElementById("chartScatter"),W=800,H=360,L=56,Rr=16,T=12,B=H-46;
+  const svg=svgFor(box,W,H,"Scatter plot: residues that wobble more in crystals have lower AlphaFold confidence");
+  const res=E.residues,xs=res.map(r=>r.zb),ys=res.map(r=>100-r.plddt);
+  const x0=Math.floor(Math.min(...xs)),x1=Math.ceil(Math.max(...xs)),y1=Math.ceil(Math.max(...ys));
+  const x=v=>L+(v-x0)/(x1-x0)*(W-L-Rr),y=v=>B-(v/y1)*(B-T);
+  for(let v=x0;v<=x1;v++){el("line",{x1:x(v),x2:x(v),y1:T,y2:B,stroke:css("--rule"),"stroke-width":1},svg);el("text",{x:x(v),y:B+16,"text-anchor":"middle"},svg).textContent=v}
+  for(let v=0;v<=y1;v++){el("line",{x1:L,x2:W-Rr,y1:y(v),y2:y(v),stroke:css("--rule"),"stroke-width":1},svg);el("text",{x:L-8,y:y(v)+4,"text-anchor":"end"},svg).textContent=v}
+  el("text",{x:(L+W-Rr)/2,y:B+34,"text-anchor":"middle"},svg).textContent="lab wobble: crystal B-factor (standard deviations from the chain's average)";
+  el("text",{x:14,y:(T+B)/2,"text-anchor":"middle",transform:`rotate(-90 14 ${(T+B)/2})`},svg).textContent="AI uncertainty (100 − pLDDT)";
+  res.forEach(r=>dot(svg,x(r.zb),y(100-r.plddt),3.5,css("--s1"),css("--bg"),`Residue ${r.pos} · ${r.aa}<br>B-factor z ${r.zb.toFixed(2)}<br>Confidence ${r.plddt.toFixed(1)}`));
+  [73,277,187].forEach(p=>{const r=res.find(q=>q.pos===p);if(r)el("text",{x:x(r.zb)+8,y:y(100-r.plddt)-6,class:"lbl"},svg).textContent=r.aa[0]+r.aa.slice(1).toLowerCase()+p});
+  const c=E.correlations.uncertainty_vs_bfactor;
+  el("text",{x:W-Rr,y:T+14,"text-anchor":"end",class:"lbl"},svg).textContent=`ρ = ${c.rho.toFixed(2)} (95% CI ${c.lo.toFixed(2)}–${c.hi.toFixed(2)})`;
+}
+
+/* Fig 5: wobble and AI error along the chain */
+function drawWobble(){
+  const box=document.getElementById("chartWobble"),W=800,H=240,L=40,Rr=12,T=12,B=H-42,lo=34,hi=290,max=0.8;
+  const svg=svgFor(box,W,H,"Lab wobble and AlphaFold error per residue; both peak at residues 73, 187 and 276 to 278");
+  const res=E.residues,x=n=>L+(n-lo)/(hi-lo)*(W-L-Rr),y=v=>B-(v/max)*(B-T);
+  grid(svg,[0,0.2,0.4,0.6,0.8],y,L,W,Rr,v=>v.toFixed(1));
+  el("text",{x:L+4,y:T+2,"dominant-baseline":"hanging"},svg).textContent="Å";
+  const path=(key,col)=>{let d="",prev=null;res.forEach(r=>{d+=(prev!=null&&r.pos===prev+1?"L":"M")+x(r.pos).toFixed(1)+" "+y(Math.min(r[key],max)).toFixed(1);prev=r.pos});el("path",{d,fill:"none",stroke:col,"stroke-width":2,"stroke-linejoin":"round"},svg)};
+  path("rmsf",css("--s2"));path("af_dev",css("--s1"));
+  [[73,"Asn73"],[193,"Ser193 (AI only)"],[277,"loop 276–278"]].forEach(([p,t])=>{const r=res.find(q=>q.pos===p);if(r)el("text",{x:x(p),y:y(Math.max(r.rmsf,r.af_dev))-8,"text-anchor":"middle",class:"lbl"},svg).textContent=t});
+  [lo,50,100,150,200,250,hi].forEach(n=>{el("text",{x:x(n),y:B+16,"text-anchor":"middle"},svg).textContent=n});
+  el("text",{x:W/2,y:B+32,"text-anchor":"middle"},svg).textContent="residue number (residues missing from any crystal are left out)";
+  const byPos={};res.forEach(r=>byPos[r.pos]=r);
+  const inv=px=>{let n=Math.round(lo+(px-L)/(W-L-Rr)*(hi-lo));for(let k=0;k<6;k++){if(byPos[n+k])return{n:n+k,r:byPos[n+k]};if(byPos[n-k])return{n:n-k,r:byPos[n-k]}}return null};
+  crosshair(box,svg,x,inv,T,B,o=>`Residue ${o.n} · ${o.r.aa}<br><i style="background:${css("--s2")}"></i>Lab wobble ${o.r.rmsf.toFixed(2)} Å<br><i style="background:${css("--s1")}"></i>AI error ${o.r.af_dev.toFixed(2)} Å`,
+    [{color:css("--s2"),get:o=>Math.min(o.r.rmsf,max),y},{color:css("--s1"),get:o=>Math.min(o.r.af_dev,max),y}]);
+}
+
+/* Fig 6: Trp185 chi2 angles */
+function drawTrp(){
+  const box=document.getElementById("chartTrp"),W=800,H=230,L=20,Rr=20,T=10,B=H-44;
+  const svg=svgFor(box,W,H,"Trp185 ring angles: most near 90 degrees, a few at 21, 44, 79, 113 and minus 92");
+  const x=v=>L+(v+180)/360*(W-L-Rr),mid=(T+B)/2;
+  [-180,-90,0,90,180].forEach(v=>{el("line",{x1:x(v),x2:x(v),y1:T,y2:B,stroke:css("--rule"),"stroke-width":1},svg);el("text",{x:x(v),y:B+16,"text-anchor":"middle"},svg).textContent=v+"°"});
+  el("text",{x:W/2,y:B+32,"text-anchor":"middle"},svg).textContent="Trp185 ring angle χ2";
+  const lab=E.trp185.filter(t=>t.name!=="AlphaFold"),af=E.trp185.find(t=>t.name==="AlphaFold");
+  const sorted=[...lab].sort((a,b)=>a.chi2-b.chi2);const stack={};
+  /* Dots stack upward from the baseline in 3° bins; AlphaFold is a ring on the baseline row below */
+  const base=B-30;
+  sorted.forEach(t=>{const bin=Math.round(t.chi2/3);stack[bin]=(stack[bin]||0)+1;const k=stack[bin]-1;
+    dot(svg,x(t.chi2),base-k*8,3.5,css("--s2"),css("--bg"),`${t.name}<br>χ2 ${t.chi2.toFixed(1)}°<br>released ${t.released}`)});
+  if(af){dot(svg,x(af.chi2),B-10,5,css("--s1"),css("--bg"),`AlphaFold<br>χ2 ${af.chi2.toFixed(1)}°`,true);el("text",{x:x(af.chi2)+12,y:B-6},svg).textContent="AlphaFold"}
+  const lbl=(name,dx,anchor)=>{const t=lab.find(q=>q.name===name);if(t)el("text",{x:x(t.chi2)+dx,y:base-14,"text-anchor":anchor,class:"lbl"},svg).textContent=name}
+  lbl("5XG0-A",0,"middle");lbl("6ANE-C",0,"middle");lbl("6EQG-B",0,"middle");lbl("5XG0-C",10,"start");
+}
+
+/* Fig 7: blind test */
+function drawBlind(){
+  const fam=[...F].sort((a,b)=>a.first_structure.localeCompare(b.first_structure));
+  const rows=[{label:"PETase (5XJH)",full:0.29,core:0.29,blind:false,year:"2018"}].concat(fam.map(f=>({label:`${f.organism.replace(/ DSM.*| TB100| YX/,"").replace("unidentified prokaryotic organism","compost metagenome (LCC)").replace(/^unidentified$/,"metagenome")} (${f.pdb.split("-")[0]})`,full:f.af_vs_lab_rmsd,core:f.af_core_rmsd,blind:f.blind,year:f.first_structure.slice(0,4),off:f.af_off_by_2A,offpl:f.af_off_mean_plddt,strict:f.strict_blind,mdate:f.af_model_date,pct:f.af_core_pct})));
+  const rowH=26,T=10,B=T+rows.length*rowH+12,W=800,L=290,Rr=16,H=B+40,max=1.6;
+  const svg=svgFor(document.getElementById("chartBlind"),W,H,"AlphaFold accuracy for PETase and 11 relatives; core RMSD under 0.45 angstroms for all");
+  const x=v=>L+(v/max)*(W-L-Rr);
+  [0,0.4,0.8,1.2,1.6].forEach(v=>{el("line",{x1:x(v),x2:x(v),y1:T,y2:B,stroke:css("--rule"),"stroke-width":1},svg);el("text",{x:x(v),y:B+16,"text-anchor":"middle"},svg).textContent=v.toFixed(1)});
+  el("text",{x:(L+W-Rr)/2,y:B+32,"text-anchor":"middle"},svg).textContent="AlphaFold vs lab RMSD (Å)";
+  let cutDrawn=false;
+  rows.forEach((r,i)=>{
+    const cy=T+i*rowH+rowH/2+4;
+    if(r.blind&&!cutDrawn){cutDrawn=true;el("line",{x1:8,x2:W-Rr,y1:cy-rowH/2,y2:cy-rowH/2,stroke:css("--accent"),"stroke-width":1.5,"stroke-dasharray":"5 4"},svg);el("text",{x:W-Rr,y:cy-rowH/2-5,"text-anchor":"end",fill:css("--accent"),style:"fill:var(--accent)"},svg).textContent="solved after AlphaFold's training ↓"}
+    el("text",{x:L-12,y:cy+4,"text-anchor":"end",class:"lbl"},svg).textContent=`${r.label} · ${r.year}`;
+    if(r.strict)el("text",{x:x(Math.max(r.full,r.core))+12,y:cy+4,style:"fill:var(--accent);font-weight:600"},svg).textContent="strictly blind";
+    el("line",{x1:x(r.core),x2:x(r.full),y1:cy,y2:cy,stroke:css("--s1"),"stroke-width":2,"stroke-opacity":.4},svg);
+    const extra=(r.off?`<br>${r.off} residues >2 Å off, avg confidence ${r.offpl}`:"")+(r.mdate?`<br>model dated ${r.mdate}${r.strict?" (before its structure)":""}<br>core keeps ${r.pct}% of residues`:"");
+    dot(svg,x(r.full),cy,5,css("--s1"),css("--bg"),`${r.label}<br>all residues ${f2(r.full)} Å<br>core ${f2(r.core)} Å${extra}`,true);
+    dot(svg,x(r.core),cy,5,css("--s1"),css("--bg"),`${r.label}<br>core ${f2(r.core)} Å`);
+  });
+}
+
+function fillTables(){
+  const res=E.residues;
+  document.querySelector("#tbl tbody").innerHTML=res.map(r=>`<tr><td>${r.pos}</td><td class="l">${r.aa}</td><td>${r.plddt.toFixed(1)}</td><td>${r.rmsf.toFixed(2)}</td><td>${r.zb.toFixed(2)}</td><td>${r.af_dev.toFixed(2)}</td></tr>`).join("");
+  const avg={};E.avg_to_lab.forEach(a=>avg[a.name]=a.mean_rmsd_to_lab);
+  document.querySelector("#chainTbl tbody").innerHTML=E.chains.map(c=>`<tr><td class="l">${c.name}</td><td>${c.res.toFixed(2)}</td><td>${c.released}</td><td>${f2(avg[c.name])}</td></tr>`).join("");
+  const want={at_S160:"S",at_W185:"W",at_D206:"D",at_H237:"H"};
+  const fam=[...F].sort((a,b)=>a.first_structure.localeCompare(b.first_structure));
+  document.querySelector("#famTable tbody").innerHTML=fam.map(f=>`<tr><td class="l">${f.organism}</td><td class="l">${f.pdb}${f.blind?' <span class="tag">new</span>':""}</td><td>${f.first_structure.slice(0,4)}</td><td>${f.seq_identity_pct.toFixed(0)}%</td><td>${f.core_rmsd_to_petase.toFixed(2)} Å</td><td>${f.tm_score.toFixed(2)}</td>`+
+    Object.keys(want).map(k=>`<td class="${f[k][0]===want[k]?"":"diff"}">${f[k]}</td>`).join("")+`</tr>`).join("");
+  document.getElementById("rank").textContent=`${E.af_rank}${["th","st","nd","rd"][(E.af_rank%10<4&&(E.af_rank%100<11||E.af_rank%100>13))?E.af_rank%10:0]} of ${E.avg_to_lab.length}`;
+  document.getElementById("site").textContent=E.active_site.median.toFixed(2)+" Å";
+  const cb=E.correlations.uncertainty_vs_bfactor;
+  document.getElementById("rho").textContent=`ρ = ${cb.rho.toFixed(2)} (95% CI ${cb.lo.toFixed(2)}–${cb.hi.toFixed(2)})`;
+  document.getElementById("pctBelow").textContent=E.pct_lab_below_ai_median+"%";
+  document.querySelector("#sensTable tbody").innerHTML=E.sensitivity.map(s=>`<tr><td class="l">${s.name}</td><td>${s.lab.median.toFixed(3)}</td><td>${s.lab.n}</td><td>${s.ai.median.toFixed(3)}</td><td>${s.ai.n}</td></tr>`).join("");
+  document.getElementById("excludedNote").textContent="Left out because their sequences differ from wild-type PETase: "+E.excluded.map(x=>`${x.entry} (${x.differences} differences, ${x.chains} chain${x.chains>1?"s":""})`).join(", ")+".";
+}
+
+/* 3D viewer */
+let V=null,mode={conf:false,site:false};
+const confColor=b=>b>=90?"#1f5fbf":b>=70?"#5aa9e6":b>=50?"#f2c14e":"#e8743b";
+function style3D(){
+  if(!V)return;
+  V.setStyle({model:0},{cartoon:mode.conf?{colorfunc:a=>confColor(a.b)}:{color:css("--s1")}});
+  V.setStyle({model:1},{cartoon:{color:css("--s2"),opacity:0.85}});
+  if(mode.site){V.addStyle({model:0,resi:[160,206,237]},{stick:{color:css("--s1"),radius:0.25}});V.addStyle({model:1,resi:[160,206,237]},{stick:{color:css("--s2"),radius:0.25}})}
+  V.setBackgroundColor(css("--panel"));V.render();
+  document.getElementById("viewerLegend").innerHTML=mode.conf
+    ?`<span class="key"><span class="sw" style="background:#1f5fbf"></span>AI, very high (90+)</span><span class="key"><span class="sw" style="background:#5aa9e6"></span>confident (70–90)</span><span class="key"><span class="sw" style="background:#f2c14e"></span>low (50–70)</span><span class="key"><span class="sw" style="background:#e8743b"></span>very low (&lt;50)</span><span class="key"><span class="sw" style="background:var(--s2)"></span>Lab (5XJH)</span>`
+    :`<span class="key"><span class="sw" style="background:var(--s1)"></span>AlphaFold prediction</span><span class="key"><span class="sw" style="background:var(--s2)"></span>Lab structure (5XJH)</span>`+(mode.site?`<span class="key">Sticks: Ser160, Asp206, His237</span>`:"");
+}
+function init3D(pdbAI,pdbLab){
+  const msg=document.getElementById("viewerMsg"),fail="The 3D view couldn't load here. The figures below show the same comparison.";
+  if(!window.$3Dmol){msg.textContent=fail;return}
+  try{V=$3Dmol.createViewer(document.getElementById("viewer"),{backgroundColor:css("--panel")});V.addModel(pdbAI,"pdb");V.addModel(pdbLab,"pdb");style3D();V.zoomTo({resi:"34-290"});V.render();msg.hidden=true}catch(e){msg.textContent=fail}
+}
+document.getElementById("btnOverlay").addEventListener("click",e=>{mode.conf=false;e.currentTarget.setAttribute("aria-pressed","true");document.getElementById("btnConf").setAttribute("aria-pressed","false");style3D()});
+document.getElementById("btnConf").addEventListener("click",e=>{mode.conf=!mode.conf;e.currentTarget.setAttribute("aria-pressed",mode.conf);document.getElementById("btnOverlay").setAttribute("aria-pressed",!mode.conf);style3D()});
+document.getElementById("btnSite").addEventListener("click",e=>{mode.site=!mode.site;e.currentTarget.setAttribute("aria-pressed",mode.site);if(V){mode.site?V.zoomTo({resi:[160,206,237]}):V.zoomTo({resi:"34-290"})}style3D()});
+
+function drawAll(){drawConf();drawDist();drawScatter();drawWobble();drawTrp();drawBlind()}
+Promise.all([fetch("residues.json").then(r=>r.json()),fetch("ensemble.json").then(r=>r.json()),fetch("family.json").then(r=>r.json()),fetch("alphafold.pdb").then(r=>r.text()),fetch("lab_5XJH.pdb").then(r=>r.text())])
+  .then(([res,ens,fam,ai,lab])=>{R=res;E=ens;F=Array.isArray(fam)?fam:[fam];drawAll();fillTables();init3D(ai,lab)})
+  .catch(err=>{document.getElementById("viewerMsg").textContent="The data files didn't load. Try refreshing the page.";console.error(err)});
+const redraw=()=>{if(E){drawAll();style3D()}};
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change",redraw);
+new MutationObserver(redraw).observe(document.documentElement,{attributes:true,attributeFilter:["data-theme"]});
+</script>
+
+</body>
+</html>
